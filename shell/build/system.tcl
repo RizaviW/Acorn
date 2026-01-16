@@ -195,12 +195,48 @@ proc create_root_design { parentCell } {
 
 
   # Create interface ports
-  set pcie_mgt_0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 pcie_mgt_0 ]
+  set PCIe [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 PCIe ]
+
+  set AXIL [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 AXIL ]
+  set_property -dict [ list \
+   CONFIG.ADDR_WIDTH {32} \
+   CONFIG.DATA_WIDTH {32} \
+   CONFIG.FREQ_HZ {125000000} \
+   CONFIG.CLK_DOMAIN {system_xdma_0_0_axi_aclk} \
+   CONFIG.HAS_BURST {0} \
+   CONFIG.HAS_CACHE {0} \
+   CONFIG.HAS_LOCK {0} \
+   CONFIG.HAS_QOS {0} \
+   CONFIG.HAS_REGION {0} \
+   CONFIG.PROTOCOL {AXI4LITE} \
+   ] $AXIL
+
+  set AXIS_C2H [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 AXIS_C2H ]
+  set_property -dict [ list \
+   CONFIG.HAS_TKEEP {1} \
+   CONFIG.HAS_TLAST {1} \
+   CONFIG.HAS_TREADY {1} \
+   CONFIG.HAS_TSTRB {0} \
+   CONFIG.LAYERED_METADATA {undef} \
+   CONFIG.TDATA_NUM_BYTES {8} \
+   CONFIG.TDEST_WIDTH {0} \
+   CONFIG.TID_WIDTH {0} \
+   CONFIG.TUSER_WIDTH {0} \
+   ] $AXIS_C2H
+
+  set AXIS_H2C [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 AXIS_H2C ]
 
 
   # Create ports
-  set sys_clk_0 [ create_bd_port -dir I -type clk sys_clk_0 ]
-  set sys_rst_n_0 [ create_bd_port -dir I -type rst sys_rst_n_0 ]
+  set system_clock [ create_bd_port -dir I -type clk system_clock ]
+  set system_reset [ create_bd_port -dir I -type rst system_reset ]
+  set AXI_clock [ create_bd_port -dir O -type clk AXI_clock ]
+  set_property -dict [ list \
+   CONFIG.ASSOCIATED_BUSIF {AXIS_C2H:AXIS_H2C} \
+ ] $AXI_clock
+  set_property CONFIG.ASSOCIATED_BUSIF.VALUE_SRC DEFAULT $AXI_clock
+
+  set AXI_reset_n [ create_bd_port -dir O -type rst AXI_reset_n ]
 
   # Create instance: xdma_0, and set properties
   set xdma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xdma:4.2 xdma_0 ]
@@ -223,24 +259,41 @@ proc create_root_design { parentCell } {
   # Create instance: blk_mem_gen_0, and set properties
   set blk_mem_gen_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 blk_mem_gen_0 ]
 
+  # Create instance: axi_interconnect_0, and set properties
+  set axi_interconnect_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_0 ]
+
   # Create interface connections
+  connect_bd_intf_net -intf_net S_AXIS_C2H_0_0_1 [get_bd_intf_ports AXIS_C2H] [get_bd_intf_pins xdma_0/S_AXIS_C2H_0]
   connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTA [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_0/BRAM_PORTA]
-  connect_bd_intf_net -intf_net xdma_0_M_AXIS_H2C_0 [get_bd_intf_pins xdma_0/S_AXIS_C2H_0] [get_bd_intf_pins xdma_0/M_AXIS_H2C_0]
-  connect_bd_intf_net -intf_net xdma_0_M_AXI_LITE [get_bd_intf_pins xdma_0/M_AXI_LITE] [get_bd_intf_pins axi_bram_ctrl_0/S_AXI]
-  connect_bd_intf_net -intf_net xdma_0_pcie_mgt [get_bd_intf_ports pcie_mgt_0] [get_bd_intf_pins xdma_0/pcie_mgt]
+  connect_bd_intf_net -intf_net axi_interconnect_0_M00_AXI [get_bd_intf_ports AXIL] [get_bd_intf_pins axi_interconnect_0/M00_AXI]
+  connect_bd_intf_net -intf_net axi_interconnect_0_M01_AXI [get_bd_intf_pins axi_interconnect_0/M01_AXI] [get_bd_intf_pins axi_bram_ctrl_0/S_AXI]
+  connect_bd_intf_net -intf_net xdma_0_M_AXIS_H2C_0 [get_bd_intf_ports AXIS_H2C] [get_bd_intf_pins xdma_0/M_AXIS_H2C_0]
+  connect_bd_intf_net -intf_net xdma_0_M_AXI_LITE [get_bd_intf_pins xdma_0/M_AXI_LITE] [get_bd_intf_pins axi_interconnect_0/S00_AXI]
+  connect_bd_intf_net -intf_net xdma_0_pcie_mgt [get_bd_intf_ports PCIe] [get_bd_intf_pins xdma_0/pcie_mgt]
 
   # Create port connections
-  connect_bd_net -net sys_clk_0_1  [get_bd_ports sys_clk_0] \
+  connect_bd_net -net sys_clk_0_1  [get_bd_ports system_clock] \
   [get_bd_pins xdma_0/sys_clk]
-  connect_bd_net -net sys_rst_n_0_1  [get_bd_ports sys_rst_n_0] \
+  connect_bd_net -net sys_rst_n_0_1  [get_bd_ports system_reset] \
   [get_bd_pins xdma_0/sys_rst_n]
   connect_bd_net -net xdma_0_axi_aclk  [get_bd_pins xdma_0/axi_aclk] \
-  [get_bd_pins axi_bram_ctrl_0/s_axi_aclk]
+  [get_bd_pins axi_bram_ctrl_0/s_axi_aclk] \
+  [get_bd_ports AXI_clock] \
+  [get_bd_pins axi_interconnect_0/ACLK] \
+  [get_bd_pins axi_interconnect_0/S00_ACLK] \
+  [get_bd_pins axi_interconnect_0/M00_ACLK] \
+  [get_bd_pins axi_interconnect_0/M01_ACLK]
   connect_bd_net -net xdma_0_axi_aresetn  [get_bd_pins xdma_0/axi_aresetn] \
-  [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn]
+  [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn] \
+  [get_bd_ports AXI_reset_n] \
+  [get_bd_pins axi_interconnect_0/ARESETN] \
+  [get_bd_pins axi_interconnect_0/S00_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M00_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M01_ARESETN]
 
   # Create address segments
-  assign_bd_address -offset 0xC0000000 -range 0x00002000 -target_address_space [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs axi_bram_ctrl_0/S_AXI/Mem0] -force
+  assign_bd_address -offset 0x00040000 -range 0x00040000 -target_address_space [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs AXIL/Reg] -force
+  assign_bd_address -offset 0x00080000 -range 0x00002000 -target_address_space [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs axi_bram_ctrl_0/S_AXI/Mem0] -force
 
 
   # Restore current instance

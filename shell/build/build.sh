@@ -25,7 +25,7 @@ GEN_TCL="$ROOT_DIR/generate.tcl"
 # 5. Output & Tools
 BUILD_TCL="$ROOT_DIR/build.tcl"
 FLASH_TOOL="$ROOT_DIR/../../flash/flash.sh"
-BIN_FILE="$PROJ_NAME/acorn.bin" # Relative to ROOT_DIR for the flash tool
+BIN_FILE="$PROJ_NAME/acorn.bin"
 
 # ==============================================================================
 # FUNCTIONS
@@ -44,11 +44,14 @@ clean() {
     rm -rf "$BUILD_DIR" "$BUILD_TCL" .Xil *.jou *.log
 }
 
+generate_rtl() {
+    echo "[*] Generating RTL from Hardcaml..."
+}
+
 flash_fpga() {
     echo "[*] Flashing FPGA..."
     if [ ! -x "$FLASH_TOOL" ]; then echo "Error: Flash tool missing at $FLASH_TOOL"; exit 1; fi
     if [ ! -f "$BIN_FILE" ];   then echo "Error: Binary missing at $BIN_FILE"; exit 1; fi
-    
     "$FLASH_TOOL" "$BIN_FILE"
 }
 
@@ -61,7 +64,7 @@ setup_vivado() {
 }
 
 generate_tcl() {
-    cat <<EOT > "$BUILD_TCL"
+cat <<EOT > "$BUILD_TCL"
     # --------------------------------------------------------------------------
     # 1. Project Setup
     # --------------------------------------------------------------------------
@@ -80,21 +83,25 @@ generate_tcl() {
     }
 
     if {[file exists "$CNSTR_DIR"]} { add_files -fileset constrs_1 "$CNSTR_DIR" }
-    
+
     update_compile_order -fileset sources_1
 EOT
 
-    # Append Compilation Logic if requested
     if [ "$COMPILE" -eq 1 ]; then
-        cat <<EOT >> "$BUILD_TCL"
-    
+cat <<EOT >> "$BUILD_TCL"
+
     # --------------------------------------------------------------------------
-    # 3. Compilation & Binary Generation
+    # 3. Implementation Strategy
+    # --------------------------------------------------------------------------
+    set_property strategy Performance_ExtraTimingOpt [get_runs impl_1]
+
+    # --------------------------------------------------------------------------
+    # 4. Compilation & Binary Generation
     # --------------------------------------------------------------------------
     puts "--> Starting Compilation..."
     launch_runs impl_1 -to_step write_bitstream -jobs $JOBS
     wait_on_run impl_1
-    
+
     open_run impl_1
     if {[file exists "$GEN_TCL"]} { source "$GEN_TCL" }
 EOT
@@ -111,19 +118,19 @@ SKIP_VIVADO=0
 while getopts "bfc" opt; do
     case ${opt} in
         b) COMPILE=1 ;;
-        f) FLASH=1; SKIP_VIVADO=1 ;; # Default to skip build if flashing
+        f) FLASH=1 ;;
         c) clean; exit 0 ;;
         *) usage ;;
     esac
 done
 
-# Logic Adjustment: If -b AND -f are used, we must run Vivado
-if [ "$COMPILE" -eq 1 ]; then
-    SKIP_VIVADO=0
+if [ "$FLASH" -eq 1 ] && [ "$COMPILE" -eq 0 ]; then
+    SKIP_VIVADO=1
 fi
 
 # 1. Run Vivado (Build or Setup)
 if [ "$SKIP_VIVADO" -eq 0 ]; then
+    generate_rtl
     setup_vivado
     generate_tcl
     
