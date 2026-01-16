@@ -32,6 +32,11 @@ module application #(
   input  logic                          AXIS_H2C_tvalid
 );
 
+  // Internal Registers
+  logic [CSR_DATA_WIDTH-1:0]            alpha;
+  logic [CSR_DATA_WIDTH-1:0]            beta;
+  logic [CSR_DATA_WIDTH-1:0]            buffer;
+
   assign AXIS_C2H_tdata       = AXIS_H2C_tdata;
   assign AXIS_C2H_tkeep       = AXIS_H2C_tkeep;
   assign AXIS_C2H_tlast       = AXIS_H2C_tlast;
@@ -41,6 +46,28 @@ module application #(
   assign CSR_RAM_write_enable = '0;
   assign CSR_RAM_address      = '0;
   assign CSR_RAM_write_data   = '0;
-  assign CSR_FF_read_data     = '0;
+
+  always_ff @(posedge clock) begin
+    if (~reset_n) begin
+      CSR_FF_read_data <= '0;
+      alpha            <= '0;
+      beta             <= '0;
+      buffer           <= '0;
+    end else begin
+      CSR_FF_read_data <= buffer;
+      if (CSR_FF_valid) begin
+        if (CSR_FF_write_enable) begin
+          case (CSR_FF_address)
+            0: alpha <= CSR_FF_write_data;
+            1: beta  <= CSR_FF_write_data;
+          endcase
+        end else begin
+          case (CSR_FF_address)
+            0: buffer <= alpha * beta;
+          endcase
+        end
+      end
+    end
+  end
 
 endmodule
