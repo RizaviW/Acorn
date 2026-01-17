@@ -1,4 +1,5 @@
 module application #(
+  parameter integer                     AXIS_DATA_WIDTH   = 64,
   parameter integer                     CSR_DATA_WIDTH    = 32,
   parameter integer                     CSR_ADDRESS_WIDTH = 8
 )(
@@ -6,36 +7,34 @@ module application #(
   input  logic                          clock,
   input  logic                          reset_n,
 
+  // Streaming Interface - Card-to-Host (C2H)
+  output logic [AXIS_DATA_WIDTH-1:0]    AXIS_C2H_tdata,
+  output logic [AXIS_DATA_WIDTH/8-1:0]  AXIS_C2H_tkeep,
+  output logic                          AXIS_C2H_tlast,
+  input  logic                          AXIS_C2H_tready,
+  output logic                          AXIS_C2H_tvalid,
+
+  // Streaming Interface - Host-to-Card (H2C)
+  input  logic [AXIS_DATA_WIDTH-1:0]    AXIS_H2C_tdata,
+  input  logic [AXIS_DATA_WIDTH/8-1:0]  AXIS_H2C_tkeep,
+  input  logic                          AXIS_H2C_tlast,
+  output logic                          AXIS_H2C_tready,
+  input  logic                          AXIS_H2C_tvalid,
+
   // Configuration Interface - RAM
   output logic                          CSR_RAM_valid,
   output logic                          CSR_RAM_write_enable,
   output logic [CSR_ADDRESS_WIDTH-1:0]  CSR_RAM_address,
   output logic [CSR_DATA_WIDTH-1:0]     CSR_RAM_write_data,
   input  logic [CSR_DATA_WIDTH-1:0]     CSR_RAM_read_data,
+
   // Configuration Interface - Registers
   input  logic                          CSR_FF_valid,
   input  logic                          CSR_FF_write_enable,
   input  logic [CSR_ADDRESS_WIDTH-1:0]  CSR_FF_address,
   input  logic [CSR_DATA_WIDTH-1:0]     CSR_FF_write_data,
-  output logic [CSR_DATA_WIDTH-1:0]     CSR_FF_read_data,
-
-  // Streaming Interface
-  output logic [63:0]                   AXIS_C2H_tdata,
-  output logic [7:0]                    AXIS_C2H_tkeep,
-  output logic                          AXIS_C2H_tlast,
-  input  logic                          AXIS_C2H_tready,
-  output logic                          AXIS_C2H_tvalid,
-  input  logic [63:0]                   AXIS_H2C_tdata,
-  input  logic [7:0]                    AXIS_H2C_tkeep,
-  input  logic                          AXIS_H2C_tlast,
-  output logic                          AXIS_H2C_tready,
-  input  logic                          AXIS_H2C_tvalid
+  output logic [CSR_DATA_WIDTH-1:0]     CSR_FF_read_data
 );
-
-  // Internal Registers
-  logic [CSR_DATA_WIDTH-1:0]            alpha;
-  logic [CSR_DATA_WIDTH-1:0]            beta;
-  logic [CSR_DATA_WIDTH-1:0]            buffer;
 
   assign AXIS_C2H_tdata       = AXIS_H2C_tdata;
   assign AXIS_C2H_tkeep       = AXIS_H2C_tkeep;
@@ -46,28 +45,6 @@ module application #(
   assign CSR_RAM_write_enable = '0;
   assign CSR_RAM_address      = '0;
   assign CSR_RAM_write_data   = '0;
-
-  always_ff @(posedge clock) begin
-    if (~reset_n) begin
-      CSR_FF_read_data <= '0;
-      alpha            <= '0;
-      beta             <= '0;
-      buffer           <= '0;
-    end else begin
-      CSR_FF_read_data <= buffer;
-      if (CSR_FF_valid) begin
-        if (CSR_FF_write_enable) begin
-          case (CSR_FF_address)
-            0: alpha <= CSR_FF_write_data;
-            1: beta  <= CSR_FF_write_data;
-          endcase
-        end else begin
-          case (CSR_FF_address)
-            0: buffer <= alpha * beta;
-          endcase
-        end
-      end
-    end
-  end
+  assign CSR_FF_read_data     = '0;
 
 endmodule

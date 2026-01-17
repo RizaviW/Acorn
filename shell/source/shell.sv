@@ -13,6 +13,8 @@ module shell #(
   // Parameters & Constants
   // --------------------------------------------------------------------
 
+  // AXI4-Stream data width
+  localparam integer AXIS_DATA_WIDTH    = 64;
   // AXI4-Lite data width
   localparam integer AXIL_DATA_WIDTH    = 32;
   // AXI4-Lite address width
@@ -46,13 +48,13 @@ module shell #(
   logic                          AXIL_wready;
   logic [3:0]                    AXIL_wstrb;
   logic                          AXIL_wvalid;
-  logic [63:0]                   AXIS_C2H_tdata;
-  logic [7:0]                    AXIS_C2H_tkeep;
+  logic [AXIS_DATA_WIDTH-1:0]    AXIS_C2H_tdata;
+  logic [AXIS_DATA_WIDTH/8-1:0]  AXIS_C2H_tkeep;
   logic                          AXIS_C2H_tlast;
   logic                          AXIS_C2H_tready;
   logic                          AXIS_C2H_tvalid;
-  logic [63:0]                   AXIS_H2C_tdata;
-  logic [7:0]                    AXIS_H2C_tkeep;
+  logic [AXIS_DATA_WIDTH-1:0]    AXIS_H2C_tdata;
+  logic [AXIS_DATA_WIDTH/8-1:0]  AXIS_H2C_tkeep;
   logic                          AXIS_H2C_tlast;
   logic                          AXIS_H2C_tready;
   logic                          AXIS_H2C_tvalid;
@@ -138,6 +140,7 @@ module shell #(
   );
 
   application #(
+    .AXIS_DATA_WIDTH             (AXIS_DATA_WIDTH),
     .CSR_DATA_WIDTH              (AXIL_DATA_WIDTH),
     .CSR_ADDRESS_WIDTH           (RAM_ADDRESS_WIDTH)
   ) application (
