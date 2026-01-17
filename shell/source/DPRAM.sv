@@ -1,6 +1,6 @@
 module DPRAM #(
-  parameter int unsigned DATA_WIDTH     = 128,
-  parameter int unsigned ADDRESS_WIDTH  = 10
+  parameter int unsigned DATA_WIDTH     = 32,
+  parameter int unsigned ADDRESS_WIDTH  = 8
 )(
   input                         clka,
   input                         clkb,

@@ -1,3 +1,5 @@
+`include "application_registers.svh"
+
 module application #(
   parameter integer                     AXIS_DATA_WIDTH   = 64,
   parameter integer                     CSR_DATA_WIDTH    = 32,
