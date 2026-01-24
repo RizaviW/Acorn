@@ -14,8 +14,8 @@ let execute_passthrough_verification device_connection =
   Acorn.write_register device_connection status_register_index 0l;
   output_log "[Status] Configuration and Status interfaces tied to ground.\n";
 
-  Acorn.set_register_bits   device_connection control_register_index 0b1l;
-  Acorn.clear_register_bits device_connection control_register_index 0b1l;
+  Acorn.set_register_bits   device_connection control_register_index Control.start_mask;
+  Acorn.clear_register_bits device_connection control_register_index Control.start_mask;
   output_log "[Status] Control path strobe transaction verified.\n";
 
   let _register_snapshot = Acorn.read_register device_connection control_register_index in
