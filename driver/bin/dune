@@ -1,5 +1,11 @@
 (executable
- (public_name driver)
- (name driver)
+ (public_name application)
+ (name application)
+ (modules application application_registers driver)
  (libraries core core_unix ctypes ctypes.foreign)
  (foreign_stubs (language c) (names vfio_bridge)))
+
+(rule
+ (targets application_registers.ml)
+ (deps ../../shell/source/application_registers.svh)
+ (action (run ocaml generate_registers.ml %{deps} %{targets})))
