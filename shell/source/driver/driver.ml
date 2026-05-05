@@ -2,7 +2,7 @@ open! Core
 open! Ctypes
 open! Foreign
 
-(** [Acorn]: A high-performance hardware abstraction layer for VFIO. *)
+(* A high-performance hardware abstraction layer for VFIO. *)
 module Acorn : sig
   type t
 
