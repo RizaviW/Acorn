@@ -38,6 +38,9 @@ module application #(
   output logic [CSR_DATA_WIDTH-1:0]     CSR_FF_read_data
 );
 
+  control_register_t                    control_register;
+  status_register_t                     status_register;
+
   assign AXIS_C2H_tdata       = AXIS_H2C_tdata;
   assign AXIS_C2H_tkeep       = AXIS_H2C_tkeep;
   assign AXIS_C2H_tlast       = AXIS_H2C_tlast;
@@ -46,7 +49,36 @@ module application #(
   assign CSR_RAM_valid        = '0;
   assign CSR_RAM_write_enable = '0;
   assign CSR_RAM_address      = '0;
-  assign CSR_RAM_write_data   = '0;
-  assign CSR_FF_read_data     = '0;
+  assign CSR_RAM_write_data   = CSR_RAM_read_data;
+
+  always_ff @(posedge clock) begin
+    if (~reset_n) begin
+    end else begin
+      if (CSR_FF_valid && CSR_FF_write_enable) begin
+        case (CSR_FF_address)
+          CONTROL_INDEX: begin
+            control_register <= CSR_FF_write_data;
+          end
+          STATUS_INDEX: begin
+            status_register <= CSR_FF_write_data;
+          end
+          default: begin
+          end
+        endcase
+      end else if (CSR_FF_valid && ~CSR_FF_write_enable) begin
+        case (CSR_FF_address)
+          CONTROL_INDEX: begin
+            CSR_FF_read_data <= control_register;
+          end
+          STATUS_INDEX: begin
+            CSR_FF_read_data <= status_register;
+          end
+          default: begin
+            CSR_FF_read_data <= '0;
+          end
+        endcase
+      end
+    end
+  end
 
 endmodule
