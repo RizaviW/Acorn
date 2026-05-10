@@ -38,6 +38,7 @@ module application #(
   output logic [CSR_DATA_WIDTH-1:0]     CSR_FF_read_data
 );
 
+  // Internal Signals
   control_register_t                    control_register;
   status_register_t                     status_register;
 
