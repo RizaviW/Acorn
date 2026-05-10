@@ -46,6 +46,7 @@ module application #(
   assign AXIS_C2H_tlast       = AXIS_H2C_tlast;
   assign AXIS_C2H_tvalid      = AXIS_H2C_tvalid;
   assign AXIS_H2C_tready      = AXIS_C2H_tready;
+
   assign CSR_RAM_valid        = '0;
   assign CSR_RAM_write_enable = '0;
   assign CSR_RAM_address      = '0;
@@ -53,17 +54,17 @@ module application #(
 
   always_ff @(posedge clock) begin
     if (~reset_n) begin
-      control_register        <= '0;
-      status_register         <= '0;
-      CSR_FF_read_data        <= '0;
+      control_register <= '0;
+      status_register  <= '0;
+      CSR_FF_read_data <= '0;
     end else begin
       if (CSR_FF_valid && CSR_FF_write_enable) begin
         case (CSR_FF_address)
           CONTROL_INDEX: begin
-            control_register  <= CSR_FF_write_data;
+            control_register <= CSR_FF_write_data;
           end
           STATUS_INDEX: begin
-            status_register   <= CSR_FF_write_data;
+            status_register  <= CSR_FF_write_data;
           end
           default: begin
           end
@@ -71,13 +72,13 @@ module application #(
       end else if (CSR_FF_valid && ~CSR_FF_write_enable) begin
         case (CSR_FF_address)
           CONTROL_INDEX: begin
-            CSR_FF_read_data  <= control_register;
+            CSR_FF_read_data <= control_register;
           end
           STATUS_INDEX: begin
-            CSR_FF_read_data  <= status_register;
+            CSR_FF_read_data <= status_register;
           end
           default: begin
-            CSR_FF_read_data  <= '0;
+            CSR_FF_read_data <= '0;
           end
         endcase
       end
