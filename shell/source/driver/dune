@@ -1,0 +1,16 @@
+(env
+ (_ (env-vars (PROJECT engine))))
+
+(copy_files# %{env:PROJECT=engine}/application.ml)
+
+(executable
+ (public_name application)
+ (name application)
+ (modules application application_registers driver)
+ (libraries core core_unix ctypes ctypes.foreign)
+ (foreign_stubs (language c) (names vfio_bridge)))
+
+(rule
+ (targets application_registers.ml)
+ (deps generate_registers.ml ../design/%{env:PROJECT=engine}/application_register_package.sv)
+ (action (run ocaml %{deps} %{targets})))
